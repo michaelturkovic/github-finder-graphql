@@ -1,7 +1,17 @@
 import axios from "axios";
-import { Arg, Query, Resolver, Mutation } from "type-graphql";
+import {
+  Root,
+  Arg,
+  Query,
+  Resolver,
+  Mutation,
+  Subscription,
+  PubSub,
+  Publisher
+} from "type-graphql";
 import User, { UserData } from "../models/User";
 import { searchedUsers } from "../data";
+import { NotificationData, Notification } from "../models/Notification";
 
 const URL = "https://api.github.com/users";
 
@@ -35,14 +45,30 @@ export class UserResolver {
   @Query(() => [User], { description: "Fetch most searched users by this api" })
   // @Arg('limit') limit: Int
   mostSearched(@Arg("limit") limit: number): UserData[] {
-    return searchedUsers.slice(0, limit).sort(user => user.searchedForCounter);
+    return searchedUsers
+      .slice(0, limit)
+      .sort((a, b) => (a.searchedForCounter > b.searchedForCounter ? -1 : 1));
   }
 
   @Mutation(() => Boolean, { description: "Reset searched counter" })
-  async deleteMostPopular() {
+  async deleteMostPopular(
+    @PubSub("COUNTER") publish: Publisher<NotificationData>
+  ) {
     if (searchedUsers.length > 0) {
-      searchedUsers.map(user => user.searchedForCounter = 0);
+      searchedUsers.map(user => (user.searchedForCounter = 0));
+      await publish({ id: Date.now(), message: "Counter was reseted" });
       return true;
-    } else return false;
+    } else {
+      await publish({ id: Date.now(), message: "List is empty" });
+      return false;
+    }
+  }
+
+  @Subscription({
+    topics: "COUNTER",
+    description: "Subscription for delete most popular"
+  })
+  counterSubscription(@Root() { id, message }: NotificationData): Notification {
+    return { id, message, date: new Date() };
   }
 }

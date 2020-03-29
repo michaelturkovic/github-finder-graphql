@@ -3,9 +3,20 @@
 # !!!   DO NOT MODIFY THIS FILE BY YOURSELF   !!!
 # -----------------------------------------------
 
+"""
+The javascript `Date` as string. Type represents date and time as the ISO Date string.
+"""
+scalar DateTime
+
 type Mutation {
   """Reset searched counter"""
   deleteMostPopular: Boolean!
+}
+
+type Notification {
+  id: ID!
+  message: String
+  date: DateTime!
 }
 
 type Query {
@@ -14,6 +25,10 @@ type Query {
 
   """Fetch most searched users by this api"""
   mostSearched(limit: Float!): [User!]!
+}
+
+type Subscription {
+  counterSubscription: Notification!
 }
 
 """The User model"""
